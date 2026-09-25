@@ -1,0 +1,81 @@
+phone_id,canonical_name,source_type,source_url,match_confidence,notes
+15,Samsung Galaxy S23 Ultra 5G,Samsung India,https://www.samsung.com/in/smartphones/galaxy-s23-ultra/,1.0,Official product page
+15,Samsung Galaxy S23 Ultra 5G,Samsung Newsroom India,https://news.samsung.com/in/samsung-galaxy-s23-ultra-launch-india,1.0,India launch information
+15,Samsung Galaxy S23 Ultra 5G,GSMArena,https://www.gsmarena.com/samsung_galaxy_s23_ultra-12254.php,0.95,Detailed hardware specifications
+15,Samsung Galaxy S23 Ultra 5G,91mobiles,https://www.91mobiles.com/index.php/samsung-galaxy-s23-ultra-5g-price-in-india,0.85,Dated 2026 market price
+207,Samsung Galaxy A54 5G,Samsung India,https://www.samsung.com/in/smartphones/galaxy-a54-5g/,1.0,Official product page
+207,Samsung Galaxy A54 5G,Samsung Newsroom India,https://news.samsung.com/in/samsung-launches-all-new-galaxy-a54-5g-and-a34-5g-with-stunning-design-and-trendy-colours,1.0,India launch information
+207,Samsung Galaxy A54 5G,GSMArena,https://www.gsmarena.com/samsung_galaxy_a54_5g-12199.php,0.95,Detailed hardware specifications
+207,Samsung Galaxy A54 5G,Gadgets360,https://www.gadgets360.com/samsung-galaxy-a54-5g-price-in-india-116239,0.85,Dated 2026 market price
+153,Apple iPhone 15 Pro Max,Apple India,https://www.apple.com/in/iphone-15-pro/specs/,1.0,Official specifications
+153,Apple iPhone 15 Pro Max,Apple Support India,https://support.apple.com/en-in/116477,1.0,Model identification
+153,Apple iPhone 15 Pro Max,Apple Newsroom India,https://www.apple.com/in/newsroom/2023/09/apple-debuts-iphone-15-pro-and-iphone-15-pro-max/,1.0,India launch information
+153,Apple iPhone 15 Pro Max,GSMArena,https://www.gsmarena.com/apple_iphone_15_pro_max-12473.php,0.95,Detailed hardware specifications
+153,Apple iPhone 15 Pro Max,91mobiles,https://www.91mobiles.com/apple-iphone-15-pro-max-price-in-india,0.85,Dated 2026 market price
+7,Apple iPhone 14,Official Apple specifications,https://support.apple.com/en-us/111850,1.0,"Official iPhone 14 specifications including model A2882, display, cameras, battery, connectivity and A2882 5G bands."
+7,Apple iPhone 14,Official Apple launch announcement,https://www.apple.com/in/newsroom/2022/09/iphone-14-lineup-apple-watch-series-8-and-new-apple-watch-se-arrive-worldwide/,1.0,"Official Apple India launch information; iPhone 14 availability began September 16, 2022."
+7,Apple iPhone 14,Official Apple iOS compatibility,https://www.apple.com/in/os/ios/,1.0,Official Apple iOS 27 page confirms iPhone 14 compatibility with iOS 27.
+7,Apple iPhone 14,GSMArena,https://www.gsmarena.com/apple_iphone_14-11861.php,0.95,Secondary specification reference used for cross-checking model identity and specifications.
+7,Apple iPhone 14,Official Apple India launch pricing,https://www.apple.com/in/newsroom/2023/03/hello-yellow-apple-introduces-new-iphone-14-and-iphone-14-plus/,1.0,"Official Apple India source confirming iPhone 14 starting price of ₹79,900."
+106,Xiaomi 13 Pro 5G,Official Xiaomi India specifications,https://www.mi.com/in/product/xiaomi-13-pro-5g/,1.0,"Primary source for India specifications including display, cameras, charging, physical specifications, connectivity, OS launch, colors and product identity."
+106,Xiaomi 13 Pro 5G,Official Xiaomi UK specifications,https://www.mi.com/uk/product/xiaomi-13-pro/specs/,0.95,"Used for model/connectivity cross-check including SIM configuration, 5G bands and USB specification."
+106,Xiaomi 13 Pro 5G,GSMArena,https://www.gsmarena.com/xiaomi_13_pro-11962.php,0.95,"Secondary source for global release date, model identifiers, battery chemistry, removable battery and audio jack."
+106,Xiaomi 13 Pro 5G,Gadgets360,https://www.gadgets360.com/mobiles/news/xiaomi-13-pro-price-in-india-rs-79999-sale-date-march-6-10-3821337,1.0,"India launch information, general sale date and official launch price."
+106,Xiaomi 13 Pro 5G,Xiaomi firmware tracker,https://ximitime.com/hyperos/nuwa/,0.95,Used to cross-check current India firmware: HyperOS 3.1 / Android 16.
+106,Xiaomi 13 Pro 5G,Xiaomi firmware tracker,https://miuidownloader.com/hyperos/nuwa,0.95,Secondary firmware cross-check for HyperOS 3.1 / Android 16.
+106,Xiaomi 13 Pro 5G,91mobiles,https://www.91mobiles.com/xiaomi-13-pro-price-in-india,0.85,Secondary reference for India pricing history and update-policy research. Current price observation was not used as current verified price.
+8,Xiaomi Redmi Note 12 Pro Plus 5G,Official Xiaomi India specifications,https://www.mi.com/in/product/redmi-note-12-pro-plus-5g/,1.0,"Primary source for India product specifications including display, camera, charging, physical specifications, colors and product identity."
+8,Xiaomi Redmi Note 12 Pro Plus 5G,Official Xiaomi India specifications,https://www.mi.com/in/product/redmi-note-12-pro-plus-5g/specs/,1.0,"Official India specification source for connectivity, India 5G bands and update policy."
+8,Xiaomi Redmi Note 12 Pro Plus 5G,Official Xiaomi India FAQ,https://www.mi.com/in/product/redmi-note-12-pro-plus-5g/faq/,1.0,"Official source for Gorilla Glass 5, Super OIS, headphone jack and launch software information."
+8,Xiaomi Redmi Note 12 Pro Plus 5G,Official Xiaomi UK specifications,https://www.mi.com/uk/product/redmi-note-12-pro-plus-5g/specs/,0.95,"Secondary official Xiaomi source for display, camera, connectivity, dimensions, weight and video specifications."
+8,Xiaomi Redmi Note 12 Pro Plus 5G,GSMArena,https://www.gsmarena.com/xiaomi_redmi_note_12_pro+-11954.php,0.9,"Secondary source for global release date, model identifiers, battery chemistry and non-removable battery."
+8,Xiaomi Redmi Note 12 Pro Plus 5G,Indian Express,https://indianexpress.com/article/technology/tech-news-technology/xiaomi-redmi-note-12-redmi-note-12-pro-5g-launch-live-updates-8362228/,1.0,India launch date and historical launch pricing.
+8,Xiaomi Redmi Note 12 Pro Plus 5G,Firmware tracker,https://xmfirmwareupdater.com/archive/hyperos/ruby/,0.9,Used to cross-check India firmware and current HyperOS 2 / Android 14 status.
+8,Xiaomi Redmi Note 12 Pro Plus 5G,91mobiles,https://www.91mobiles.com/xiaomi-redmi-note-12-pro-plus-5g-price-in-india,0.8,Secondary reference for historical pricing and software-update information. Current price was not stored as verified.
+8,Xiaomi Redmi Note 12 Pro Plus 5G,Gadgets360,https://www.gadgets360.com/redmi-note-12-pro-plus-price-in-india-107931,0.85,Secondary reference for historical price and charging details. Historical price was not stored as current.
+1,OnePlus 11 5G,Official OnePlus product page,https://www.oneplus.in/11,1.0,Source URL recorded in the Phone 1 enrichment script; used as the primary official product source.
+1,OnePlus 11 5G,GSMArena,https://www.gsmarena.com/oneplus_11-11893.php,0.9,Secondary source URL recorded in the Phone 1 enrichment script.
+2,OnePlus Nord CE 2 Lite 5G,Official OnePlus specifications,https://www.oneplus.in/nord-ce-2-lite-5g/specs,1.0,Official specification URL recorded in the Phone 2 enrichment script.
+2,OnePlus Nord CE 2 Lite 5G,GSMArena,https://www.gsmarena.com/oneplus_nord_ce_2_lite_5g-11409.php,0.9,Secondary specification URL recorded in the Phone 2 enrichment script.
+3,Samsung Galaxy A14 5G,Official Samsung India,https://www.samsung.com/in/smartphones/galaxy-a/galaxy-a14-5g-black-128gb-sm-a146bzkdins/,1.0,Official Samsung India source URL recorded in the Phone 3 enrichment script.
+3,Samsung Galaxy A14 5G,GSMArena,https://www.gsmarena.com/samsung_galaxy_a14_5g-12074.php,0.9,Secondary source URL recorded in the Phone 3 enrichment script.
+4,Motorola Moto G62 5G,Official Motorola India,https://www.motorola.in/smartphones-moto-g-62-5g/p,1.0,Official Motorola source URL recorded in the Phone 4 enrichment script.
+4,Motorola Moto G62 5G,GSMArena,https://www.gsmarena.com/motorola_moto_g62_5g-11631.php,0.9,Secondary source URL recorded in the Phone 4 enrichment script.
+5,Realme 10 Pro+ 5G,Official realme India,https://www.realme.com/in/realme-10-pro-plus,1.0,Official realme source URL recorded in the Phone 5 enrichment script.
+5,Realme 10 Pro+ 5G,GSMArena,https://www.gsmarena.com/realme_10_pro+-12054.php,0.9,Secondary source URL recorded in the Phone 5 enrichment script.
+6,Samsung Galaxy F23 5G,Official Samsung India,https://www.samsung.com/in/,0.8,Official Samsung India URL recorded in the Phone 6 enrichment script. This is the Samsung India site rather than a product-specific page.
+6,Samsung Galaxy F23 5G,GSMArena,https://www.gsmarena.com/samsung_galaxy_f23-11398.php,0.9,Secondary source URL recorded in the Phone 6 enrichment script.
+9,Nothing Phone (1),Official Nothing India,https://in.nothing.tech/pages/phone-1,1.0,Official Nothing source URL recorded in the Phone 9 enrichment script.
+9,Nothing Phone (1),GSMArena,https://www.gsmarena.com/nothing_phone_(1)-11636.php,0.9,Secondary source URL recorded in the Phone 9 enrichment script.
+10,OnePlus Nord 2T 5G,Official OnePlus specifications,https://www.oneplus.in/nord-2t-5g/specs,1.0,Official specification URL recorded in the Phone 10 enrichment script.
+11,Realme 10 Pro 5G,Official realme India,https://www.realme.com/in/realme-10-pro/specs,1.0,Official specification URL recorded in the Phone 11 enrichment script.
+11,Realme 10 Pro 5G,GSMArena,https://www.gsmarena.com/realme_10_pro-11954.php,0.9,Secondary source URL recorded in the Phone 11 enrichment script.
+12,OPPO A78,Official OPPO India,https://www.oppo.com/in/smartphones/series-a/a78/specs/,1.0,Official specification URL recorded in the Phone 12 enrichment script.
+12,OPPO A78,GSMArena,https://www.gsmarena.com/oppo_a78-12466.php,0.9,Secondary source URL recorded in the Phone 12 enrichment script.
+14,vivo T1 5G,Official vivo India,https://www.vivo.com/in/products/t1-5g,1.0,Official vivo product URL recorded in the Phone 14 enrichment script.
+16,Apple iPhone 13,Official Apple India,https://www.apple.com/in/iphone-13/,1.0,Official Apple India product URL recorded in the Phone 16 enrichment script.
+17,vivo Y16,Official vivo India,https://www.vivo.com/in/products/y16,1.0,Official vivo product URL recorded in the Phone 17 enrichment script.
+19,OnePlus 10R 5G,Official OnePlus specifications,https://www.oneplus.in/10r/specs,1.0,Official specification URL recorded in the Phone 19 enrichment script.
+20,vivo Y22,Official vivo India,https://www.vivo.com/in/products/y22,1.0,Official vivo product URL recorded in the Phone 20 enrichment script.
+21,OnePlus 11R,Official OnePlus India,https://www.oneplus.in/11r,1.0,Official OnePlus product URL recorded in the Phone 21 enrichment script.
+26,Samsung Galaxy S20 FE 5G,Official Samsung India support,https://www.samsung.com/in/support/model/SM-G781BZBDEUC/,1.0,Official Samsung India support URL recorded in the Phone 26 enrichment script.
+27,OnePlus Nord CE 2 Lite 5G (8GB RAM + 128GB),Official OnePlus specifications,https://www.oneplus.in/nord-ce-2-lite-5g/specs,1.0,Official OnePlus specification URL recorded in the Phone 27 enrichment script.
+28,Apple iPhone 14 Pro Max,Official Apple India,https://www.apple.com/in/iphone-14-pro/,1.0,Official Apple India product URL recorded in the Phone 28 enrichment script.
+29,vivo V25 5G,Official vivo India,https://www.vivo.com/in/products/v25,1.0,Official vivo product URL recorded in the Phone 29 enrichment script.
+186,OnePlus Nord 3 5G,Official OnePlus India,https://www.oneplus.in/nord-3-5g,1.0,Official OnePlus product URL recorded in the Phone 186 enrichment script.
+186,OnePlus Nord 3 5G,GSMArena,https://www.gsmarena.com/oneplus_nord_3-12368.php,0.9,Secondary source URL recorded in the Phone 186 enrichment script.
+347,vivo X90 Pro 5G,Official vivo India,https://www.vivo.com/in/products/x90-pro,1.0,Official vivo product URL recorded in the Phone 347 enrichment script.
+347,vivo X90 Pro 5G,GSMArena,https://www.gsmarena.com/vivo_x90_pro-12103.php,0.9,Secondary source URL recorded in the Phone 347 enrichment script.
+194,Motorola Edge 30 Fusion 5G,Official Motorola India support,https://en-in.support.motorola.com/app/answers/detail/,0.8,Official Motorola support URL recorded in the Phone 194 enrichment script; product-specific URL was truncated in the original terminal output.
+13,Redmi Note 12 Pro 5G,Official Xiaomi India specifications,https://www.mi.com/in/product/redmi-note-12-pro-5g/specs/,1.0,Official Xiaomi specification source for the Redmi Note 12 Pro 5G.
+13,Redmi Note 12 Pro 5G,Official Xiaomi India product page,https://www.mi.com/in/product/redmi-note-12-pro-5g/buy/,0.95,Official Xiaomi India product page confirming the India product listing.
+18,OPPO Reno9 Pro+,Official OPPO specifications,https://www.oppo.com/cn/smartphones/series-reno/reno9-pro-plus/specs/,1.0,"Official OPPO specifications. Confirms Reno9 Pro+ model, dimensions, display, cameras, charging, connectivity and ColorOS."
+23,POCO X4 Pro 5G,Gadgets360,https://www.gadgets360.com/mobiles/news/poco-x4-pro-5g-price-in-india-rs-18999-launch-sale-date-april-5-specifications-features-flipkart-2847308/,0.9,"Secondary source for India launch, specifications and historical launch pricing."
+24,Xiaomi Redmi Note 12,Official Xiaomi India specifications,https://www.mi.com/in/product/redmi-note-12/specs/,1.0,"Official Xiaomi India specifications for display, cameras, battery, charging, dimensions, connectivity and software."
+24,Xiaomi Redmi Note 12,Official Xiaomi India FAQ,https://www.mi.com/in/product/redmi-note-12/faq/,1.0,"Official Xiaomi India FAQ confirming Gorilla Glass, 120Hz display, headphone jack, Android/MIUI version, camera setup, 33W charging and IP53."
+25,vivo V26 Pro,Gadgets Now,https://gadgetsnow.indiatimes.com/mobile-phones/vivo-v26-pro,0.85,Source reports the Vivo V26 Pro as CANCELLED. No specifications were imported into the enriched dataset.
+25,vivo V26 Pro,Smartprix,https://www.smartprix.com/mobiles/vivo-v26-pro-ppd14x2qk2u1,0.85,Secondary source explicitly describes the device as rumored/unverified. Used only to support the decision not to invent specifications.
+31,Realme 10 Pro (8GB RAM + 128GB),Official realme India newsroom,https://www.realme.com/in/newsroom/realme-10-pro-series,1.0,"Official realme India launch announcement confirming realme 10 Pro 5G, 8GB+128GB variant, India availability, pricing and major specifications."
+32,POCO X5 Pro 5G,Official POCO India,https://www.youtube.com/watch?v=q4ksMdiAZXw,0.9,Official POCO India launch video confirming POCO X5 Pro 5G and India launch context.
+33,vivo V27 5G (8GB RAM + 256GB),Official vivo India specifications,https://www.vivo.com/in/products/param/v27,1.0,"Official vivo India parameter page confirming V27 display, cameras, battery, charging, connectivity, software and India configuration."
+33,vivo V27 5G (8GB RAM + 256GB),Official vivo India press release,https://vivonewsroom.in/press-release/vivo-launches-the-premium-v27-series-in-india-packed-with-flagship-grade-cameras-and-3d-curved-display/,1.0,"Official vivo India launch announcement confirming India launch, V27 camera system, display, chipset and series details."

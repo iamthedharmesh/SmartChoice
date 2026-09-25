@@ -1,0 +1,983 @@
+"""
+SmartChoice FastAPI backend.
+
+How this connects to the ML engine:
+  On startup we LOAD the files that were already trained:
+    - processed_movies.csv  (titles, genres, overview, ...)
+    - tfidf_vectorizer.joblib, tfidf_matrix.joblib, movies_index.joblib
+
+  We never call TfidfVectorizer.fit here. GET /recommend/movie/{id} only
+  looks up that movie's row and reuses recommend_by_movie_id() from
+  app.ml.recommender (TF-IDF + cosine similarity).
+"""
+
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+from math import ceil
+from typing import Optional
+
+import pandas as pd
+import numpy as np
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+from app.ml.recommender import load_artifacts, load_processed_movies, recommend_by_movie_id
+from app.ml.preference_recommender import recommend_from_preferences
+from app.ml.phone_recommender import (
+    PhoneData,
+    PhoneFilters,
+    recommend_phones,
+)
+from app.ml.phone_enrichment import load_enriched
+from app.tmdb import (
+    fetch_movie_metadata,
+    fetch_multiple_metadata,
+    fetch_popular_movies,
+    fetch_trending_movies,
+    fetch_upcoming_movies,
+    fetch_now_playing_movies,
+    discover_movies,
+    fetch_tmdb_movie_details,
+    _map_tmdb_movie,
+)
+
+DEFAULT_PAGE = 1
+DEFAULT_LIMIT = 20
+MAX_LIMIT = 50
+
+
+def _cell_text(value) -> str:
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return ""
+    return str(value)
+
+
+def movie_summary(row: pd.Series) -> dict:
+    return {
+        "movie_id": int(row["movie_id"]),
+        "title": _cell_text(row["title"]),
+        "genres": _cell_text(row.get("genres")),
+        "overview": _cell_text(row.get("overview")),
+    }
+
+
+def movie_detail(row: pd.Series) -> dict:
+    detail = movie_summary(row)
+    detail["keywords"] = _cell_text(row.get("keywords"))
+    detail["cast"] = _cell_text(row.get("cast"))
+    detail["director"] = _cell_text(row.get("director"))
+    return detail
+
+
+def _load_phones() -> PhoneData:
+    """Load the cleaned phone catalog once at startup."""
+    return PhoneData()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Load CSV + joblib artifacts once. Requests only read this memory."""
+    movies = load_processed_movies()
+    _vectorizer, tfidf_matrix, movies_index = load_artifacts()
+    app.state.movies = movies
+    app.state.tfidf_matrix = tfidf_matrix
+    app.state.movies_index = movies_index
+    app.state.phones = _load_phones()
+    app.state.phone_enriched = load_enriched()
+    yield
+
+
+app = FastAPI(
+    title="SmartChoice API",
+    description="REST API around the existing TF-IDF movie recommender.",
+    lifespan=lifespan,
+)
+
+# Next.js (later) runs on port 3000. The browser blocks cross-origin calls
+# unless the API explicitly allows that origin.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "service": "SmartChoice API"}
+
+
+@app.get("/movies")
+def list_movies(
+    page: int = Query(DEFAULT_PAGE, description="1-based page number"),
+    limit: int = Query(DEFAULT_LIMIT, description="Items per page"),
+):
+    if page < 1:
+        raise HTTPException(status_code=400, detail="page must be an integer >= 1")
+    if limit < 1 or limit > MAX_LIMIT:
+        raise HTTPException(
+            status_code=400,
+            detail=f"limit must be between 1 and {MAX_LIMIT}",
+        )
+
+    movies: pd.DataFrame = app.state.movies
+    total = int(len(movies))
+    total_pages = max(1, ceil(total / limit)) if total else 0
+    start = (page - 1) * limit
+    end = start + limit
+    page_rows = movies.iloc[start:end]
+
+    return {
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "total_pages": total_pages,
+        "results": [movie_summary(row) for _, row in page_rows.iterrows()],
+    }
+
+
+@app.get("/movies/search")
+def search_movies(
+    q: str = Query(..., min_length=1, description="Title search (case-insensitive)"),
+    limit: int = Query(DEFAULT_LIMIT, description="Max results to return"),
+):
+    query = " ".join(q.lower().split())
+    if not query:
+        raise HTTPException(status_code=400, detail="q must not be empty")
+    if limit < 1 or limit > MAX_LIMIT:
+        raise HTTPException(
+            status_code=400,
+            detail=f"limit must be between 1 and {MAX_LIMIT}",
+        )
+
+    movies: pd.DataFrame = app.state.movies
+    titles = movies["title"].fillna("").map(lambda title: str(title).lower())
+    matched = movies[titles.str.contains(query, regex=False)]
+    results = matched.head(limit)
+
+    return {
+        "query": q,
+        "total": int(len(matched)),
+        "results": [movie_summary(row) for _, row in results.iterrows()],
+    }
+
+
+@app.get("/movies/{movie_id}/metadata")
+async def get_movie_metadata(movie_id: int):
+    """
+    Fetch visual metadata from TMDB for a movie.
+
+    Returns poster_url, backdrop_url, release_date, release_year, rating, runtime.
+    Returns empty values gracefully if TMDB metadata is unavailable or API key not configured.
+    Does not fail the request if TMDB is unavailable.
+    """
+    movies: pd.DataFrame = app.state.movies
+    matches = movies[movies["movie_id"] == movie_id]
+    if matches.empty:
+        raise HTTPException(status_code=404, detail=f"Movie not found: {movie_id}")
+
+    metadata = await fetch_movie_metadata(movie_id)
+
+    if metadata is None:
+        return {
+            "movie_id": movie_id,
+            "poster_url": None,
+            "backdrop_url": None,
+            "release_date": None,
+            "release_year": None,
+            "rating": None,
+            "runtime": None,
+        }
+
+    return metadata
+
+
+@app.post("/movies/metadata/batch")
+async def get_movies_metadata_batch(movie_ids: list[int]):
+    """
+    Fetch visual metadata from TMDB for multiple movies in a single request.
+
+    Returns a dict mapping movie_id to metadata (or None if not found).
+    Limits concurrency to avoid overwhelming TMDB.
+    """
+    if not movie_ids:
+        return {}
+
+    if len(movie_ids) > 50:
+        raise HTTPException(status_code=400, detail="Maximum 50 movie IDs per batch")
+
+    metadata_map = await fetch_multiple_metadata(movie_ids)
+
+    # Ensure all requested IDs are in response
+    return {mid: metadata_map.get(mid) for mid in movie_ids}
+
+
+@app.get("/movies/tmdb/{movie_id}")
+async def get_tmdb_movie(movie_id: int):
+    """
+    Fetch full movie details from TMDB including cast, crew, and extended info.
+    
+    This endpoint works for ANY TMDB movie ID, not just those in the local dataset.
+    Returns rich movie details including:
+    - Basic info (title, overview, poster, backdrop, release date, rating, runtime)
+    - Genres, original language, production countries
+    - Main cast (top 10 billed)
+    - Director(s)
+    - Writers
+    - Key crew members
+    """
+    details = await fetch_tmdb_movie_details(movie_id)
+
+    if details is None:
+        raise HTTPException(status_code=404, detail=f"Movie not found on TMDB: {movie_id}")
+
+    return details
+
+
+@app.get("/movies/discover")
+async def discover_movies_endpoint(
+    page: int = Query(DEFAULT_PAGE, ge=1, le=500, description="Page number (1-500)"),
+    sort_by: str = Query("popularity.desc", description="Sort order (e.g., popularity.desc, release_date.desc, vote_average.desc, vote_count.desc)"),
+    year: Optional[int] = Query(None, description="Filter by release year"),
+    primary_release_year: Optional[int] = Query(None, description="Filter by primary release year"),
+    release_date_gte: Optional[str] = Query(None, description="Release date greater than or equal (YYYY-MM-DD)"),
+    release_date_lte: Optional[str] = Query(None, description="Release date less than or equal (YYYY-MM-DD)"),
+    primary_release_date_gte: Optional[str] = Query(None, description="Primary release date greater than or equal (YYYY-MM-DD)"),
+    primary_release_date_lte: Optional[str] = Query(None, description="Primary release date less than or equal (YYYY-MM-DD)"),
+    language: Optional[str] = Query(None, description="Language code (e.g., en, hi, ta, te, ml, kn, bn, ko, ja)"),
+    region: Optional[str] = Query(None, description="Region code (e.g., US, IN)"),
+    with_original_language: Optional[str] = Query(None, description="Filter by original language (ISO 639-1)"),
+    with_genres: Optional[str] = Query(None, description="Comma-separated genre IDs"),
+    vote_average_gte: Optional[float] = Query(None, ge=0, le=10, description="Minimum vote average (0-10)"),
+    include_adult: bool = Query(False, description="Include adult movies"),
+    include_video: bool = Query(False, description="Include videos"),
+    with_origin_country: Optional[str] = Query(None, description="Filter by origin country (ISO 3166-1)"),
+):
+    """
+    Discover movies using TMDB's /discover/movie endpoint.
+    
+    Supports filtering by year, language, region, genres, rating, etc.
+    Returns paginated results with movie details including posters, ratings, etc.
+    """
+    result = await discover_movies(
+        page=page,
+        sort_by=sort_by,
+        year=year,
+        primary_release_year=primary_release_year,
+        release_date_gte=release_date_gte,
+        release_date_lte=release_date_lte,
+        primary_release_date_gte=primary_release_date_gte,
+        primary_release_date_lte=primary_release_date_lte,
+        language=language,
+        region=region,
+        with_original_language=with_original_language,
+        with_genres=with_genres,
+        vote_average_gte=vote_average_gte,
+        include_adult=include_adult,
+        include_video=include_video,
+        with_origin_country=with_origin_country,
+    )
+
+    if result is None:
+        raise HTTPException(status_code=503, detail="TMDB service unavailable")
+
+    movies = [_map_tmdb_movie(m) for m in result.get("results", [])]
+    return {
+        "page": result.get("page", page),
+        "total_pages": result.get("total_pages", 0),
+        "total_results": result.get("total_results", 0),
+        "results": movies,
+    }
+
+
+@app.get("/movies/trending")
+async def trending_movies(
+    time_window: str = Query("week", pattern="^(day|week)$", description="Time window: 'day' or 'week'"),
+    language: str = Query("en-US", description="Language code"),
+):
+    """
+    Fetch trending movies from TMDB.
+    """
+    result = await fetch_trending_movies(time_window=time_window, language=language)
+
+    if result is None:
+        raise HTTPException(status_code=503, detail="TMDB service unavailable")
+
+    movies = [_map_tmdb_movie(m) for m in result.get("results", [])]
+    return {
+        "page": 1,
+        "total_pages": 1,
+        "total_results": len(movies),
+        "results": movies,
+    }
+
+
+@app.get("/movies/popular")
+async def popular_movies(
+    page: int = Query(DEFAULT_PAGE, ge=1, le=500, description="Page number (1-500)"),
+    sort_by: str = Query("popularity.desc", description="Sort order"),
+    year: Optional[int] = Query(None, description="Filter by release year"),
+    primary_release_year: Optional[int] = Query(None, description="Filter by primary release year"),
+    release_date_gte: Optional[str] = Query(None, description="Release date greater than or equal (YYYY-MM-DD)"),
+    release_date_lte: Optional[str] = Query(None, description="Release date less than or equal (YYYY-MM-DD)"),
+    primary_release_date_gte: Optional[str] = Query(None, description="Primary release date greater than or equal (YYYY-MM-DD)"),
+    primary_release_date_lte: Optional[str] = Query(None, description="Primary release date less than or equal (YYYY-MM-DD)"),
+    language: Optional[str] = Query(None, description="Language code (e.g., en, hi, ta, te, ml, kn, bn, ko, ja)"),
+    region: Optional[str] = Query(None, description="Region code (e.g., US, IN)"),
+    with_original_language: Optional[str] = Query(None, description="Filter by original language (ISO 639-1)"),
+    with_genres: Optional[str] = Query(None, description="Comma-separated genre IDs"),
+    vote_average_gte: Optional[float] = Query(None, ge=0, le=10, description="Minimum vote average (0-10)"),
+    include_adult: bool = Query(False, description="Include adult movies"),
+    include_video: bool = Query(False, description="Include videos"),
+    with_origin_country: Optional[str] = Query(None, description="Filter by origin country (ISO 3166-1)"),
+):
+    """
+    Fetch popular movies from TMDB using /discover/movie with popularity.desc sort.
+    
+    Supports all discover filters.
+    """
+    result = await discover_movies(
+        page=page,
+        sort_by=sort_by,
+        year=year,
+        primary_release_year=primary_release_year,
+        release_date_gte=release_date_gte,
+        release_date_lte=release_date_lte,
+        primary_release_date_gte=primary_release_date_gte,
+        primary_release_date_lte=primary_release_date_lte,
+        language=language,
+        region=region,
+        with_original_language=with_original_language,
+        with_genres=with_genres,
+        vote_average_gte=vote_average_gte,
+        include_adult=include_adult,
+        include_video=include_video,
+        with_origin_country=with_origin_country,
+    )
+
+    if result is None:
+        raise HTTPException(status_code=503, detail="TMDB service unavailable")
+
+    movies = [_map_tmdb_movie(m) for m in result.get("results", [])]
+    return {
+        "page": result.get("page", page),
+        "total_pages": result.get("total_pages", 0),
+        "total_results": result.get("total_results", 0),
+        "results": movies,
+    }
+
+
+@app.get("/movies/upcoming")
+async def upcoming_movies(
+    page: int = Query(DEFAULT_PAGE, ge=1, le=500, description="Page number (1-500)"),
+    language: Optional[str] = Query(None, description="Language code (e.g., en, hi, ta, te, ml, kn, bn, ko, ja)"),
+    region: Optional[str] = Query(None, description="Region code (e.g., US, IN)"),
+    with_original_language: Optional[str] = Query(None, description="Filter by original language (ISO 639-1)"),
+    with_genres: Optional[str] = Query(None, description="Comma-separated genre IDs"),
+    vote_average_gte: Optional[float] = Query(None, ge=0, le=10, description="Minimum vote average (0-10)"),
+    year: Optional[int] = Query(None, description="Filter by release year"),
+    with_origin_country: Optional[str] = Query(None, description="Filter by origin country (ISO 3166-1)"),
+):
+    """
+    Fetch upcoming movies from TMDB using /discover/movie with
+    primary_release_date >= today, sorted by primary_release_date.asc.
+    """
+    result = await fetch_upcoming_movies(
+        page=page,
+        language=language or "en-US",
+        region=region,
+        with_original_language=with_original_language,
+        with_genres=with_genres,
+        vote_average_gte=vote_average_gte,
+        year=year,
+        with_origin_country=with_origin_country,
+    )
+
+    if result is None:
+        raise HTTPException(status_code=503, detail="TMDB service unavailable")
+
+    movies = [_map_tmdb_movie(m) for m in result.get("results", [])]
+    return {
+        "page": result.get("page", page),
+        "total_pages": result.get("total_pages", 0),
+        "total_results": result.get("total_results", 0),
+        "results": movies,
+    }
+
+
+@app.get("/movies/now-playing")
+async def now_playing_movies(
+    page: int = Query(DEFAULT_PAGE, ge=1, le=500, description="Page number (1-500)"),
+    language: Optional[str] = Query(None, description="Language code (e.g., en, hi, ta, te, ml, kn, bn, ko, ja)"),
+    region: Optional[str] = Query(None, description="Region code (e.g., US, IN)"),
+    with_original_language: Optional[str] = Query(None, description="Filter by original language (ISO 639-1)"),
+    with_genres: Optional[str] = Query(None, description="Comma-separated genre IDs"),
+    vote_average_gte: Optional[float] = Query(None, ge=0, le=10, description="Minimum vote average (0-10)"),
+    year: Optional[int] = Query(None, description="Filter by release year"),
+    with_origin_country: Optional[str] = Query(None, description="Filter by origin country (ISO 3166-1)"),
+):
+    """
+    Fetch now playing movies from TMDB using /discover/movie with
+    primary_release_date filter (today and ~90 days ago), sorted by
+    primary_release_date.desc.
+    """
+    result = await fetch_now_playing_movies(
+        page=page,
+        language=language or "en-US",
+        region=region,
+        with_original_language=with_original_language,
+        with_genres=with_genres,
+        vote_average_gte=vote_average_gte,
+        year=year,
+        with_origin_country=with_origin_country,
+    )
+
+    if result is None:
+        raise HTTPException(status_code=503, detail="TMDB service unavailable")
+
+    movies = [_map_tmdb_movie(m) for m in result.get("results", [])]
+    return {
+        "page": result.get("page", page),
+        "total_pages": result.get("total_pages", 0),
+        "total_results": result.get("total_results", 0),
+        "results": movies,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Mobile / phone catalog and recommendation endpoints
+# ---------------------------------------------------------------------------
+PHONE_FIELDS = [
+    "phone_id", "brand", "model", "price_inr", "rating", "ram_gb", "storage_gb",
+    "processor_brand", "processor_name", "core_count", "clock_speed_ghz",
+    "battery_mah", "charging_watt", "refresh_rate_hz", "rear_camera_mp",
+    "front_camera_mp", "rear_camera_count", "has_5g", "has_nfc", "os",
+]
+
+
+ENRICHMENT_FIELDS = [
+    "canonical_name",
+    "model_id",
+    "release_date_global",
+    "release_date_india",
+    "availability_status_india",
+    "discontinued_date_india",
+    "display_size_inch",
+    "display_type",
+    "display_resolution",
+    "display_refresh_rate_hz",
+    "display_protection",
+    "display_peak_brightness_nits",
+    "display_hdr_support",
+    "rear_camera_count",
+    "rear_main_mp",
+    "rear_main_aperture",
+    "rear_main_sensor",
+    "rear_main_ois",
+    "rear_ultrawide_mp",
+    "rear_ultrawide_aperture",
+    "rear_telephoto_mp",
+    "rear_telephoto_aperture",
+    "rear_telephoto_optical_zoom",
+    "rear_video_max",
+    "front_camera_mp",
+    "front_camera_aperture",
+    "front_camera_af",
+    "front_video_max",
+    "battery_type",
+    "wired_charging_w",
+    "wireless_charging_w",
+    "reverse_wireless_charging_w",
+    "battery_removable",
+    "dimensions_mm",
+    "weight_g",
+    "build_frame",
+    "build_back",
+    "ip_rating",
+    "colors_available",
+    "sim_type",
+    "five_g_bands",
+    "wifi_standard",
+    "bluetooth_version",
+    "usb_version",
+    "usb_type",
+    "audio_jack",
+    "os_launch",
+    "os_current",
+    "os_update_policy_years",
+    "official_product_url",
+    "official_image_url",
+    "local_image_path",
+    "gsmarena_url",
+    "launch_price_inr_official",
+    "current_min_price_inr",
+    "price_updated_at",
+]
+
+
+def _get_phone_enrichment(phone_id: int):
+    enriched = getattr(app.state, "phone_enriched", None)
+
+    if enriched is None or enriched.empty:
+        return None
+
+    matches = enriched[enriched["phone_id"] == phone_id]
+
+    if matches.empty:
+        return None
+
+    row = matches.iloc[0]
+
+    return {
+        field: _cell_to_json(row.get(field))
+        for field in ENRICHMENT_FIELDS
+    }
+
+
+def _phone_summary(row: pd.Series, include_enrichment: bool = True) -> dict:
+    phone_id = int(row["phone_id"])
+
+    result = {
+        k: _cell_to_json(row.get(k))
+        for k in PHONE_FIELDS
+    }
+
+    if include_enrichment:
+        result["enrichment"] = _get_phone_enrichment(phone_id)
+
+    return result
+
+
+def _attach_enrichment_to_recommendations(result: dict) -> dict:
+    recommendations = result.get("recommendations", [])
+
+    for recommendation in recommendations:
+        phone_id = recommendation.get("phone_id")
+
+        if phone_id is None:
+            recommendation["enrichment"] = None
+            continue
+
+        enrichment = _get_phone_enrichment(int(phone_id))
+        recommendation["enrichment"] = enrichment
+
+        # Enrichment-aware reasons.
+        # Ranking and match percentage are NOT changed.
+        if enrichment:
+            extra_reasons = []
+
+            display_type = enrichment.get("display_type")
+            refresh = enrichment.get("display_refresh_rate_hz")
+
+            if display_type and refresh:
+                try:
+                    extra_reasons.append(
+                        f"{int(float(refresh))} Hz {str(display_type).strip()} display"
+                    )
+                except (TypeError, ValueError):
+                    pass
+
+            if enrichment.get("rear_main_mp"):
+                try:
+                    mp = float(enrichment["rear_main_mp"])
+                    camera_reason = (
+                        f"{int(mp) if mp.is_integer() else mp} MP main camera"
+                    )
+
+                    ois = enrichment.get("rear_main_ois")
+                    if ois is not None and str(ois).strip().lower() in {
+                        "yes", "true", "1"
+                    }:
+                        camera_reason += " with OIS"
+
+                    extra_reasons.append(camera_reason)
+                except (TypeError, ValueError):
+                    pass
+
+            if enrichment.get("wired_charging_w"):
+                try:
+                    watts = float(enrichment["wired_charging_w"])
+                    extra_reasons.append(
+                        f"{int(watts) if watts.is_integer() else watts}W wired charging"
+                    )
+                except (TypeError, ValueError):
+                    pass
+
+            if enrichment.get("ip_rating"):
+                extra_reasons.append(
+                    f"{str(enrichment['ip_rating']).strip()} water/dust resistance"
+                )
+
+            # Put data-backed reasons first, then preserve existing reasons.
+            existing_reasons = recommendation.get("reasons", [])
+
+            combined = []
+            seen = set()
+
+            for reason in extra_reasons + existing_reasons:
+                if reason and reason not in seen:
+                    seen.add(reason)
+                    combined.append(reason)
+
+            recommendation["reasons"] = combined[:3]
+
+    return result
+
+
+def _cell_to_json(value):
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    if isinstance(value, (np.integer,)):
+        return int(value)
+    if isinstance(value, (np.floating,)):
+        f = float(value)
+        return None if pd.isna(f) else f
+    if isinstance(value, bool):
+        return bool(value)
+    return value
+
+
+class PhoneRecommendRequest(BaseModel):
+    budget_max: Optional[int] = None
+    budget_min: Optional[int] = None
+    brand: Optional[str] = None
+    min_ram: Optional[int] = None
+    min_storage: Optional[int] = None
+    has_5g: Optional[bool] = None
+    refresh_rate_min: Optional[int] = None
+    priority: str = "Value"
+    limit: int = 10
+
+
+VALID_PRIORITIES = {"Gaming", "Camera", "Performance", "Battery", "Value", "Student", "Everyday"}
+
+
+@app.get("/mobiles")
+def list_mobiles(
+    page: int = Query(DEFAULT_PAGE, ge=1, description="1-based page number"),
+    limit: int = Query(DEFAULT_LIMIT, ge=1, le=MAX_LIMIT, description="Items per page"),
+):
+    """Return the cleaned phone catalog with pagination."""
+    phones: PhoneData = app.state.phones
+    df = phones.raw
+    total = int(len(df))
+    total_pages = max(1, ceil(total / limit)) if total else 0
+    start = (page - 1) * limit
+    end = start + limit
+    page_rows = df.iloc[start:end]
+    return {
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "total_pages": total_pages,
+        "mobiles": [_phone_summary(row) for _, row in page_rows.iterrows()],
+    }
+
+
+@app.get("/mobiles/search")
+def search_mobiles(
+    q: Optional[str] = Query(None, description="Search text (case-insensitive)"),
+    brand: Optional[str] = Query(None, description="Filter by brand"),
+    min_price: Optional[int] = Query(None, ge=0, description="Minimum price in INR"),
+    max_price: Optional[int] = Query(None, ge=0, description="Maximum price in INR"),
+    min_ram: Optional[int] = Query(None, ge=1, description="Minimum RAM in GB"),
+    min_storage: Optional[int] = Query(None, ge=1, description="Minimum storage in GB"),
+    has_5g: Optional[bool] = Query(None, description="Require 5G"),
+    page: int = Query(DEFAULT_PAGE, ge=1, description="1-based page number"),
+    limit: int = Query(DEFAULT_LIMIT, ge=1, le=MAX_LIMIT, description="Items per page"),
+):
+    """Search the phone catalog. All filters are optional and composable."""
+    phones: PhoneData = app.state.phones
+    df = phones.raw.copy()
+
+    if q:
+        query = " ".join(q.lower().split())
+        if not query:
+            raise HTTPException(status_code=400, detail="q must not be empty")
+        mask = pd.Series(False, index=df.index)
+        for col in ("brand", "model", "processor_brand", "processor_name"):
+            if col in df.columns:
+                mask |= df[col].fillna("").astype(str).str.lower().str.contains(query, regex=False)
+        df = df[mask]
+
+    if brand:
+        df = df[df["brand"].fillna("").astype(str).str.lower() == str(brand).strip().lower()]
+    if min_price is not None:
+        df = df[df["price_inr"].fillna(0) >= min_price]
+    if max_price is not None:
+        df = df[df["price_inr"].fillna(np.inf) <= max_price]
+    if min_ram is not None:
+        df = df[df["ram_gb"].fillna(0) >= min_ram]
+    if min_storage is not None:
+        df = df[df["storage_gb"].fillna(0) >= min_storage]
+    if has_5g is True:
+        df = df[df["has_5g"].astype(int) == 1]
+
+    total = int(len(df))
+    total_pages = max(1, ceil(total / limit)) if total else 0
+    start = (page - 1) * limit
+    end = start + limit
+    page_rows = df.iloc[start:end]
+    return {
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "total_pages": total_pages,
+        "mobiles": [_phone_summary(row) for _, row in page_rows.iterrows()],
+    }
+
+
+@app.post("/recommend/phone/preferences")
+def recommend_phone_preferences(req: PhoneRecommendRequest):
+    """Find My Phone — preference-based recommendations.
+
+    Hard user filters + priority-weighted use-case scores from
+    app.ml.phone_recommender. Returns SmartChoice Match scores and reasons.
+    """
+    if req.priority not in VALID_PRIORITIES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"priority must be one of {sorted(VALID_PRIORITIES)}",
+        )
+    if req.budget_max is not None and req.budget_max <= 0:
+        raise HTTPException(status_code=400, detail="budget_max must be > 0")
+    if req.budget_min is not None and req.budget_min <= 0:
+        raise HTTPException(status_code=400, detail="budget_min must be > 0")
+    if req.min_ram is not None and req.min_ram <= 0:
+        raise HTTPException(status_code=400, detail="min_ram must be > 0")
+    if req.min_storage is not None and req.min_storage <= 0:
+        raise HTTPException(status_code=400, detail="min_storage must be > 0")
+    if req.refresh_rate_min is not None and req.refresh_rate_min <= 0:
+        raise HTTPException(status_code=400, detail="refresh_rate_min must be > 0")
+    if req.limit < 1 or req.limit > MAX_LIMIT:
+        raise HTTPException(status_code=400, detail=f"limit must be between 1 and {MAX_LIMIT}")
+
+    phones: PhoneData = app.state.phones
+    result = recommend_phones(
+        phones,
+        PhoneFilters(
+            budget_max=req.budget_max,
+            budget_min=req.budget_min,
+            brand=req.brand,
+            min_ram=req.min_ram,
+            min_storage=req.min_storage,
+            has_5g=req.has_5g,
+            refresh_rate_min=req.refresh_rate_min,
+        ),
+        priority=req.priority,
+        limit=req.limit,
+    )
+
+    return _attach_enrichment_to_recommendations(result)
+
+
+@app.get("/mobiles/brands")
+def list_mobile_brands():
+    """Return all unique non-empty brands from phones.csv, sorted alphabetically."""
+    phones: PhoneData = app.state.phones
+    df = phones.raw
+    brands_series = df["brand"].dropna().astype(str).str.strip()
+    brands = (
+        brands_series[brands_series != ""]
+        .drop_duplicates()
+        .sort_values()
+        .tolist()
+    )
+    return {"brands": brands}
+
+
+@app.get("/mobiles/{phone_id}")
+def get_mobile(phone_id: int):
+    """Return the full cleaned phone record for one phone. 404 if unknown."""
+    phones: PhoneData = app.state.phones
+    df = phones.raw
+    matches = df[df["phone_id"] == phone_id]
+    if matches.empty:
+        raise HTTPException(status_code=404, detail=f"Phone not found: {phone_id}")
+    return _phone_summary(matches.iloc[0])
+
+
+@app.get("/recommend/movie/{movie_id}")
+def recommend_movie(movie_id: int):
+    """
+    Top 10 similar movies from the EXISTING TF-IDF + cosine-similarity model.
+
+    Flow: movie_id -> row in movies_index -> that row TF-IDF vector ->
+    cosine_similarity against the saved matrix -> top 10 (excluding itself).
+    """
+    movies: pd.DataFrame = app.state.movies
+    seed = movies[movies["movie_id"] == movie_id]
+    if seed.empty:
+        raise HTTPException(status_code=404, detail=f"Movie not found: {movie_id}")
+
+    try:
+        recs = recommend_by_movie_id(
+            movie_id,
+            app.state.movies_index,
+            app.state.tfidf_matrix,
+            app.state.movies,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+    return {
+        "movie_id": int(seed.iloc[0]["movie_id"]),
+        "title": _cell_text(seed.iloc[0]["title"]),
+        "recommendations": recs.to_dict(orient="records"),
+    }
+
+
+class PreferencesRequest(BaseModel):
+    genres: list[str] = []
+    language: Optional[str] = None
+    min_rating: Optional[float] = None
+    year_from: Optional[int] = None
+    year_to: Optional[int] = None
+    priority: str = "story"
+    limit: int = 10
+    exclude_movie_ids: Optional[list[int]] = None
+
+
+@app.post("/recommend/preferences")
+def recommend_from_user_preferences(req: PreferencesRequest):
+    """
+    "Find My Movie" — preference-based recommendations.
+
+    Reuses the existing TF-IDF matrix for content/story similarity and adds
+    hybrid scoring on top of genre match, rating, popularity, and recency.
+    """
+    movies: pd.DataFrame = app.state.movies
+
+    recs = recommend_from_preferences(
+        movies=movies,
+        tfidf_matrix=app.state.tfidf_matrix,
+        genres=req.genres,
+        language=req.language,
+        min_rating=req.min_rating,
+        year_from=req.year_from,
+        year_to=req.year_to,
+        priority=req.priority,
+        limit=req.limit,
+        exclude_movie_ids=req.exclude_movie_ids,
+    )
+
+    return {
+        "applied_preferences": {
+            "genres": req.genres,
+            "language": req.language,
+            "min_rating": req.min_rating,
+            "year_from": req.year_from,
+            "year_to": req.year_to,
+            "priority": req.priority,
+        },
+        "total": len(recs),
+        "recommendations": recs.to_dict(orient="records"),
+    }
+
+
+@app.get("/movies/{movie_id}")
+def get_movie(movie_id: int):
+    movies: pd.DataFrame = app.state.movies
+    matches = movies[movies["movie_id"] == movie_id]
+    if matches.empty:
+        raise HTTPException(status_code=404, detail=f"Movie not found: {movie_id}")
+    return movie_detail(matches.iloc[0])
+
+# ---------------------------------------------------------------------------
+# Laptop catalog and recommendation endpoints (Steps 1 & 2)
+# ---------------------------------------------------------------------------
+from app.ml.laptop_recommender import recommender as laptop_recommender
+
+class LaptopRecommendRequest(BaseModel):
+    budget_min: Optional[float] = None
+    budget_max: Optional[float] = None
+    brand: Optional[str] = None
+    min_ram: Optional[int] = None
+    gpu_type: Optional[str] = None
+    priority: str = "Coding"
+    limit: int = 8
+
+
+@app.get("/laptops")
+def list_laptops(
+    page: int = Query(1, ge=1),
+    limit: int = Query(12, ge=1, le=50),
+    brand: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    min_ram: Optional[int] = None,
+    gpu_type: Optional[str] = None,
+    q: Optional[str] = None,
+):
+    """
+    Paginated laptop catalog supporting brand, price, RAM, GPU, and search query filters.
+    """
+    return laptop_recommender.get_all(
+        page=page,
+        limit=limit,
+        brand=brand,
+        min_price=min_price,
+        max_price=max_price,
+        min_ram=min_ram,
+        gpu_type=gpu_type,
+        search=q,
+    )
+
+
+@app.get("/laptops/brands")
+def list_laptop_brands():
+    """
+    Return all unique laptop brands sorted alphabetically.
+    """
+    return {"brands": laptop_recommender.get_brands()}
+
+
+@app.get("/laptops/{laptop_id}")
+def get_laptop(laptop_id: int):
+    """
+    Return full hardware specifications for an individual laptop.
+    """
+    item = laptop_recommender.get_by_id(laptop_id)
+    if not item:
+        raise HTTPException(status_code=404, detail=f"Laptop not found: {laptop_id}")
+    return item
+
+
+@app.post("/recommend/laptop/preferences")
+def recommend_laptop_preferences(req: LaptopRecommendRequest):
+    """
+    Smart Laptop Finder - Multi-criteria hardware persona recommendation engine.
+    Calculates match scores and hardware explanations for Coding, Gaming, Student,
+    Productivity, and Value.
+    """
+    recs = laptop_recommender.recommend(
+        budget_min=req.budget_min,
+        budget_max=req.budget_max,
+        brand=req.brand,
+        min_ram=req.min_ram,
+        gpu_type=req.gpu_type,
+        priority=req.priority,
+        top_k=req.limit,
+    )
+
+    return {
+        "applied_preferences": {
+            "budget_min": req.budget_min,
+            "budget_max": req.budget_max,
+            "brand": req.brand,
+            "min_ram": req.min_ram,
+            "gpu_type": req.gpu_type,
+            "priority": req.priority,
+        },
+        "total": len(recs),
+        "recommendations": recs,
+    }

@@ -1,0 +1,179 @@
+"""
+SmartChoice - Laptop Dataset Generator
+Generates backend/data/laptops.csv with 105 realistic models across
+Apple, ASUS, Lenovo, HP, Dell, Acer, and MSI in the Indian market.
+"""
+
+import os
+import csv
+
+DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
+OUTPUT_CSV = os.path.join(DATA_DIR, "laptops.csv")
+
+LAPTOPS_DATA = [
+    # --- APPLE MACBOOKS ---
+    (1, "Apple", "MacBook Air M1 (8GB/256GB)", 64990, "Apple", "M1", 8, 8, "Unified", 256, "NVMe SSD", "Apple", "7-core GPU", "Integrated", 13.3, 60, "2560x1600 Retina", 1.29, 49, "macOS", 91.5),
+    (2, "Apple", "MacBook Air M2 (8GB/256GB)", 89990, "Apple", "M2", 8, 8, "Unified", 256, "NVMe SSD", "Apple", "8-core GPU", "Integrated", 13.6, 60, "2560x1664 Liquid Retina", 1.24, 52, "macOS", 93.0),
+    (3, "Apple", "MacBook Air M2 (16GB/512GB)", 119990, "Apple", "M2", 8, 16, "Unified", 512, "NVMe SSD", "Apple", "10-core GPU", "Integrated", 13.6, 60, "2560x1664 Liquid Retina", 1.24, 52, "macOS", 95.0),
+    (4, "Apple", "MacBook Air M3 (16GB/512GB)", 134900, "Apple", "M3", 8, 16, "Unified", 512, "NVMe SSD", "Apple", "10-core GPU", "Integrated", 13.6, 60, "2560x1664 Liquid Retina", 1.24, 52, "macOS", 96.5),
+    (5, "Apple", "MacBook Air 15 M3 (16GB/512GB)", 154900, "Apple", "M3", 8, 16, "Unified", 512, "NVMe SSD", "Apple", "10-core GPU", "Integrated", 15.3, 60, "2880x1864 Liquid Retina", 1.51, 66, "macOS", 96.0),
+    (6, "Apple", "MacBook Pro 14 M3 (16GB/512GB)", 169900, "Apple", "M3", 8, 16, "Unified", 512, "NVMe SSD", "Apple", "10-core GPU", "Integrated", 14.2, 120, "3024x1964 Liquid Retina XDR", 1.55, 70, "macOS", 97.0),
+    (7, "Apple", "MacBook Pro 14 M3 Pro (18GB/512GB)", 199900, "Apple", "M3 Pro", 11, 18, "Unified", 512, "NVMe SSD", "Apple", "14-core GPU", "Integrated", 14.2, 120, "3024x1964 Liquid Retina XDR", 1.61, 72, "macOS", 98.0),
+    (8, "Apple", "MacBook Pro 16 M3 Max (36GB/1TB)", 349900, "Apple", "M3 Max", 14, 36, "Unified", 1024, "NVMe SSD", "Apple", "30-core GPU", "Integrated", 16.2, 120, "3456x2234 Liquid Retina XDR", 2.16, 100, "macOS", 99.0),
+
+    # --- LENOVO IDEAPAD & YOGA (STUDENT / PRODUCTIVITY / CODING) ---
+    (9, "Lenovo", "IdeaPad 1 15AMN7", 34990, "AMD", "Ryzen 3 7320U", 4, 8, "LPDDR5", 512, "NVMe SSD", "AMD", "Radeon 610M", "Integrated", 15.6, 60, "1920x1080 FHD", 1.58, 42, "Windows 11", 76.0),
+    (10, "Lenovo", "IdeaPad Slim 3 15IAU7", 41990, "Intel", "Core i3-1215U", 6, 8, "DDR4", 512, "NVMe SSD", "Intel", "UHD Graphics", "Integrated", 15.6, 60, "1920x1080 FHD", 1.63, 45, "Windows 11", 78.5),
+    (11, "Lenovo", "IdeaPad Slim 3 14IRH8", 48990, "Intel", "Core i5-12450H", 8, 16, "LPDDR5", 512, "NVMe SSD", "Intel", "UHD Graphics", "Integrated", 14.0, 60, "1920x1080 FHD", 1.37, 47, "Windows 11", 83.0),
+    (12, "Lenovo", "IdeaPad Slim 3 15ABR8", 46990, "AMD", "Ryzen 5 7530U", 6, 16, "DDR4", 512, "NVMe SSD", "AMD", "Radeon RX Vega 7", "Integrated", 15.6, 60, "1920x1080 FHD", 1.62, 47, "Windows 11", 82.5),
+    (13, "Lenovo", "IdeaPad Slim 5 14IRH8", 62990, "Intel", "Core i5-13500H", 12, 16, "LPDDR5", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 14.0, 60, "1920x1200 WUXGA OLED", 1.46, 56, "Windows 11", 88.0),
+    (14, "Lenovo", "IdeaPad Slim 5 16ABR8", 67990, "AMD", "Ryzen 7 7730U", 8, 16, "DDR4", 1024, "NVMe SSD", "AMD", "Radeon RX Vega 8", "Integrated", 16.0, 60, "1920x1200 WUXGA IPS", 1.89, 56, "Windows 11", 86.5),
+    (15, "Lenovo", "Yoga Slim 6 14IRH8", 74990, "Intel", "Core i5-13500H", 12, 16, "LPDDR5", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 14.0, 120, "2880x1800 2.8K OLED", 1.35, 65, "Windows 11", 91.0),
+    (16, "Lenovo", "Yoga 7 2-in-1 14AHP9", 89990, "AMD", "Ryzen 7 8840HS", 8, 16, "LPDDR5X", 1024, "NVMe SSD", "AMD", "Radeon 780M", "Integrated", 14.0, 90, "2880x1800 2.8K OLED Touch", 1.49, 71, "Windows 11", 93.0),
+    (17, "Lenovo", "ThinkPad E14 Gen 5", 68990, "AMD", "Ryzen 5 7530U", 6, 16, "DDR4", 512, "NVMe SSD", "AMD", "Radeon RX Vega 7", "Integrated", 14.0, 60, "1920x1200 WUXGA IPS", 1.41, 57, "Windows 11 Pro", 87.0),
+    (18, "Lenovo", "ThinkPad E16 Gen 1", 72990, "Intel", "Core i5-1335U", 10, 16, "DDR4", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 16.0, 60, "1920x1200 WUXGA IPS", 1.77, 57, "Windows 11 Pro", 86.0),
+
+    # --- LENOVO GAMING (LOQ / LEGION) ---
+    (19, "Lenovo", "LOQ 15IAX9 (i5-12450HX / RTX 2050)", 54990, "Intel", "Core i5-12450HX", 8, 16, "DDR5", 512, "NVMe SSD", "NVIDIA", "RTX 2050 (4GB)", "Dedicated", 15.6, 144, "1920x1080 FHD IPS", 2.38, 60, "Windows 11", 82.0),
+    (20, "Lenovo", "LOQ 15IAX9 (i5-12450HX / RTX 3050)", 62990, "Intel", "Core i5-12450HX", 8, 16, "DDR5", 512, "NVMe SSD", "NVIDIA", "RTX 3050 (6GB)", "Dedicated", 15.6, 144, "1920x1080 FHD IPS", 2.38, 60, "Windows 11", 85.0),
+    (21, "Lenovo", "LOQ 15IRX9 (i5-13450HX / RTX 4050)", 77990, "Intel", "Core i5-13450HX", 10, 16, "DDR5", 512, "NVMe SSD", "NVIDIA", "RTX 4050 (6GB)", "Dedicated", 15.6, 144, "1920x1080 FHD 100% sRGB", 2.38, 60, "Windows 11", 89.0),
+    (22, "Lenovo", "LOQ 15AHP9 (Ryzen 7 8845HS / RTX 4060)", 94990, "AMD", "Ryzen 7 8845HS", 8, 16, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4060 (8GB)", "Dedicated", 15.6, 144, "1920x1080 FHD 100% sRGB", 2.38, 60, "Windows 11", 92.5),
+    (23, "Lenovo", "Legion Slim 5 16IRH8 (i7-13700H / RTX 4060)", 119990, "Intel", "Core i7-13700H", 14, 16, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4060 (8GB)", "Dedicated", 16.0, 165, "2560x1600 WQXGA IPS", 2.40, 80, "Windows 11", 94.0),
+    (24, "Lenovo", "Legion Pro 5 16IRX9 (i7-14700HX / RTX 4070)", 159990, "Intel", "Core i7-14700HX", 20, 32, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4070 (8GB)", "Dedicated", 16.0, 240, "2560x1600 WQXGA IPS", 2.50, 80, "Windows 11", 96.5),
+
+    # --- ASUS VIVOBOOK & ZENBOOK (STUDENT / THIN & LIGHT / CREATOR) ---
+    (25, "ASUS", "Vivobook Go 15 OLED (Ryzen 3 7320U)", 37990, "AMD", "Ryzen 3 7320U", 4, 8, "LPDDR5", 512, "NVMe SSD", "AMD", "Radeon 610M", "Integrated", 15.6, 60, "1920x1080 FHD OLED", 1.63, 50, "Windows 11", 79.0),
+    (26, "ASUS", "Vivobook 15 X1502ZA (i3-1215U)", 38990, "Intel", "Core i3-1215U", 6, 8, "DDR4", 512, "NVMe SSD", "Intel", "UHD Graphics", "Integrated", 15.6, 60, "1920x1080 FHD", 1.70, 42, "Windows 11", 77.0),
+    (27, "ASUS", "Vivobook 15 X1504VA (i5-1335U)", 51990, "Intel", "Core i5-1335U", 10, 16, "DDR4", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 15.6, 60, "1920x1080 FHD", 1.70, 42, "Windows 11", 82.0),
+    (28, "ASUS", "Vivobook 16X M1603QA (Ryzen 5 5600H)", 45990, "AMD", "Ryzen 5 5600H", 6, 16, "DDR4", 512, "NVMe SSD", "AMD", "Radeon RX Vega 7", "Integrated", 16.0, 60, "1920x1200 WUXGA", 1.80, 50, "Windows 11", 82.5),
+    (29, "ASUS", "Vivobook S 14 OLED K5404VA (i5-13500H)", 69990, "Intel", "Core i5-13500H", 12, 16, "LPDDR5", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 14.0, 90, "2880x1800 2.8K OLED", 1.45, 75, "Windows 11", 90.0),
+    (30, "ASUS", "Vivobook S 15 OLED S5506MA (Core Ultra 5 125H)", 84990, "Intel", "Core Ultra 5 125H", 14, 16, "LPDDR5X", 1024, "NVMe SSD", "Intel", "Arc Graphics", "Integrated", 15.6, 120, "2880x1620 3K OLED", 1.50, 75, "Windows 11", 92.5),
+    (31, "ASUS", "Zenbook 14 OLED UX3405MA (Core Ultra 7 155H)", 107990, "Intel", "Core Ultra 7 155H", 16, 16, "LPDDR5X", 1024, "NVMe SSD", "Intel", "Arc Graphics", "Integrated", 14.0, 120, "2880x1800 2.8K OLED Touch", 1.20, 75, "Windows 11", 95.0),
+    (32, "ASUS", "Zenbook S 13 OLED UX5304VA", 124990, "Intel", "Core i7-1355U", 10, 16, "LPDDR5", 1024, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 13.3, 60, "2880x1800 2.8K OLED", 1.00, 63, "Windows 11", 94.0),
+
+    # --- ASUS GAMING (TUF / ROG) ---
+    (33, "ASUS", "TUF Gaming F15 FX506HF (i5-11400H / RTX 2050)", 49990, "Intel", "Core i5-11400H", 6, 16, "DDR4", 512, "NVMe SSD", "NVIDIA", "RTX 2050 (4GB)", "Dedicated", 15.6, 144, "1920x1080 FHD IPS", 2.30, 48, "Windows 11", 79.5),
+    (34, "ASUS", "TUF Gaming A15 FA506NC (Ryzen 5 7535HS / RTX 3050)", 59990, "AMD", "Ryzen 5 7535HS", 6, 16, "DDR5", 512, "NVMe SSD", "NVIDIA", "RTX 3050 (4GB)", "Dedicated", 15.6, 144, "1920x1080 FHD IPS", 2.30, 48, "Windows 11", 83.5),
+    (35, "ASUS", "TUF Gaming F15 FX507ZC4 (i5-12500H / RTX 3050)", 67990, "Intel", "Core i5-12500H", 12, 16, "DDR4", 512, "NVMe SSD", "NVIDIA", "RTX 3050 (4GB)", "Dedicated", 15.6, 144, "1920x1080 FHD IPS", 2.20, 56, "Windows 11", 85.0),
+    (36, "ASUS", "TUF Gaming A15 FA507NU (Ryzen 7 7735HS / RTX 4050)", 82990, "AMD", "Ryzen 7 7735HS", 8, 16, "DDR5", 512, "NVMe SSD", "NVIDIA", "RTX 4050 (6GB)", "Dedicated", 15.6, 144, "1920x1080 FHD 100% sRGB", 2.20, 90, "Windows 11", 90.0),
+    (37, "ASUS", "TUF Gaming A15 FA507NV (Ryzen 7 7735HS / RTX 4060)", 99990, "AMD", "Ryzen 7 7735HS", 8, 16, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4060 (8GB)", "Dedicated", 15.6, 144, "1920x1080 FHD 100% sRGB", 2.20, 90, "Windows 11", 93.0),
+    (38, "ASUS", "ROG Strix G16 G614JU (i7-13650HX / RTX 4050)", 114990, "Intel", "Core i7-13650HX", 14, 16, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4050 (6GB)", "Dedicated", 16.0, 165, "1920x1200 FHD+ ROG Nebula", 2.50, 90, "Windows 11", 92.0),
+    (39, "ASUS", "ROG Zephyrus G14 GA403UV (Ryzen 9 8945HS / RTX 4060)", 164990, "AMD", "Ryzen 9 8945HS", 8, 16, "LPDDR5X", 1024, "NVMe SSD", "NVIDIA", "RTX 4060 (8GB)", "Dedicated", 14.0, 120, "2880x1800 3K OLED ROG Nebula", 1.50, 73, "Windows 11", 96.5),
+    (40, "ASUS", "ROG Strix SCAR 16 G634JZR (i9-14900HX / RTX 4080)", 269990, "Intel", "Core i9-14900HX", 24, 32, "DDR5", 2048, "NVMe SSD", "NVIDIA", "RTX 4080 (12GB)", "Dedicated", 16.0, 240, "2560x1600 QHD+ Mini LED", 2.65, 90, "Windows 11", 98.5),
+
+    # --- HP PAVILION, VICTUS & OMEN ---
+    (41, "HP", "15s-fq5007TU (i3-1215U)", 37990, "Intel", "Core i3-1215U", 6, 8, "DDR4", 512, "NVMe SSD", "Intel", "UHD Graphics", "Integrated", 15.6, 60, "1920x1080 FHD", 1.69, 41, "Windows 11", 76.5),
+    (42, "HP", "15s-eq2144AU (Ryzen 5 5500U)", 42990, "AMD", "Ryzen 5 5500U", 6, 16, "DDR4", 512, "NVMe SSD", "AMD", "Radeon RX Vega 7", "Integrated", 15.6, 60, "1920x1080 FHD", 1.69, 41, "Windows 11", 81.0),
+    (43, "HP", "15s-fd0011TU (i5-1335U)", 53990, "Intel", "Core i5-1335U", 10, 16, "DDR4", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 15.6, 60, "1920x1080 FHD", 1.59, 41, "Windows 11", 83.0),
+    (44, "HP", "Pavilion 14-dv2014TU (i5-1235U)", 58990, "Intel", "Core i5-1235U", 10, 16, "DDR4", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 14.0, 60, "1920x1080 FHD IPS", 1.41, 43, "Windows 11", 84.5),
+    (45, "HP", "Pavilion Plus 14-ew0018TU (i5-13500H)", 74990, "Intel", "Core i5-13500H", 12, 16, "LPDDR5x", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 14.0, 120, "2880x1800 2.8K OLED", 1.44, 68, "Windows 11", 91.0),
+    (46, "HP", "Pavilion Plus 14-ey0789AU (Ryzen 7 7840U)", 79990, "AMD", "Ryzen 7 7840U", 8, 16, "LPDDR5x", 1024, "NVMe SSD", "AMD", "Radeon 780M", "Integrated", 14.0, 120, "2880x1800 2.8K OLED", 1.38, 68, "Windows 11", 92.5),
+    (47, "HP", "Envy x360 14-fc0028TU (Core Ultra 5 125U)", 99990, "Intel", "Core Ultra 5 125U", 12, 16, "LPDDR5X", 512, "NVMe SSD", "Intel", "Graphics", "Integrated", 14.0, 120, "2880x1800 2.8K OLED Touch", 1.39, 59, "Windows 11", 93.0),
+    (48, "HP", "Spectre x360 14-eu0004TU (Core Ultra 7 155H)", 159990, "Intel", "Core Ultra 7 155H", 16, 32, "LPDDR5X", 1024, "NVMe SSD", "Intel", "Arc Graphics", "Integrated", 14.0, 120, "2880x1800 2.8K OLED Touch", 1.44, 68, "Windows 11", 97.0),
+    (49, "HP", "Victus 15-fb0157AX (Ryzen 5 5600H / RX 6500M)", 49990, "AMD", "Ryzen 5 5600H", 6, 8, "DDR4", 512, "NVMe SSD", "AMD", "Radeon RX 6500M (4GB)", "Dedicated", 15.6, 144, "1920x1080 FHD IPS", 2.29, 52, "Windows 11", 78.0),
+    (50, "HP", "Victus 15-fa0666TX (i5-12450H / RTX 3050)", 63990, "Intel", "Core i5-12450H", 8, 16, "DDR4", 512, "NVMe SSD", "NVIDIA", "RTX 3050 (4GB)", "Dedicated", 15.6, 144, "1920x1080 FHD IPS", 2.29, 52, "Windows 11", 84.0),
+    (51, "HP", "Victus 16-s0089AX (Ryzen 7 7840HS / RTX 4060)", 99990, "AMD", "Ryzen 7 7840HS", 8, 16, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4060 (8GB)", "Dedicated", 16.1, 165, "1920x1080 FHD IPS 100% sRGB", 2.33, 70, "Windows 11", 92.0),
+    (52, "HP", "Omen 16-xf0059AX (Ryzen 7 7840HS / RTX 4070)", 139990, "AMD", "Ryzen 7 7840HS", 8, 16, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4070 (8GB)", "Dedicated", 16.1, 240, "2560x1440 QHD IPS", 2.39, 83, "Windows 11", 95.5),
+
+    # --- DELL INSPIRON & G15 / ALIENWARE ---
+    (53, "Dell", "Inspiron 3520 (i3-1215U / 8GB)", 36990, "Intel", "Core i3-1215U", 6, 8, "DDR4", 512, "NVMe SSD", "Intel", "UHD Graphics", "Integrated", 15.6, 120, "1920x1080 FHD 120Hz", 1.65, 41, "Windows 11", 77.0),
+    (54, "Dell", "Inspiron 3530 (i5-1335U / 16GB)", 52990, "Intel", "Core i5-1335U", 10, 16, "DDR4", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 15.6, 120, "1920x1080 FHD 120Hz", 1.62, 54, "Windows 11", 83.0),
+    (55, "Dell", "Inspiron 5430 (i5-1335U / 16GB)", 64990, "Intel", "Core i5-1335U", 10, 16, "LPDDR5", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 14.0, 60, "1920x1200 FHD+ IPS", 1.54, 54, "Windows 11", 86.5),
+    (56, "Dell", "Inspiron 5630 (i7-1360P / 16GB)", 82990, "Intel", "Core i7-1360P", 12, 16, "LPDDR5", 1024, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 16.0, 60, "1920x1200 FHD+ IPS", 1.82, 65, "Windows 11", 89.0),
+    (57, "Dell", "G15 5530 (i5-13450HX / RTX 3050)", 71990, "Intel", "Core i5-13450HX", 10, 16, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 3050 (6GB)", "Dedicated", 15.6, 120, "1920x1080 FHD", 2.65, 56, "Windows 11", 86.0),
+    (58, "Dell", "G15 5530 (i7-13650HX / RTX 4050)", 89990, "Intel", "Core i7-13650HX", 14, 16, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4050 (6GB)", "Dedicated", 15.6, 165, "1920x1080 FHD 100% sRGB", 2.65, 86, "Windows 11", 90.0),
+    (59, "Dell", "G15 5530 (i7-13650HX / RTX 4060)", 109990, "Intel", "Core i7-13650HX", 14, 16, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4060 (8GB)", "Dedicated", 15.6, 165, "1920x1080 FHD 100% sRGB", 2.65, 86, "Windows 11", 92.5),
+    (60, "Dell", "Alienware m16 R2 (Ultra 7 155H / RTX 4070)", 189990, "Intel", "Core Ultra 7 155H", 16, 32, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4070 (8GB)", "Dedicated", 16.0, 240, "2560x1600 QHD+ 240Hz", 2.60, 90, "Windows 11", 97.5),
+    (61, "Dell", "XPS 13 9340 (Core Ultra 7 155H / 16GB)", 149990, "Intel", "Core Ultra 7 155H", 16, 16, "LPDDR5X", 512, "NVMe SSD", "Intel", "Arc Graphics", "Integrated", 13.4, 120, "1920x1200 FHD+ InfinityEdge", 1.19, 55, "Windows 11", 95.0),
+
+    # --- ACER ASPIRE, SWIFT & NITRO ---
+    (62, "Acer", "Aspire Lite AL15-31P (N100)", 26990, "Intel", "Processor N100", 4, 8, "LPDDR5", 512, "NVMe SSD", "Intel", "UHD Graphics", "Integrated", 15.6, 60, "1920x1080 FHD", 1.59, 36, "Windows 11", 69.0),
+    (63, "Acer", "Aspire 3 A315-24P (Ryzen 3 7320U)", 32990, "AMD", "Ryzen 3 7320U", 4, 8, "LPDDR5", 512, "NVMe SSD", "AMD", "Radeon 610M", "Integrated", 15.6, 60, "1920x1080 FHD", 1.78, 40, "Windows 11", 74.0),
+    (64, "Acer", "Aspire Lite AL15-52H (i5-1235U)", 41990, "Intel", "Core i5-1235U", 10, 16, "DDR4", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 15.6, 60, "1920x1080 FHD", 1.59, 44, "Windows 11", 81.0),
+    (65, "Acer", "Aspire 5 A515-58M (i5-1335U)", 49990, "Intel", "Core i5-1335U", 10, 16, "LPDDR5", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 15.6, 60, "1920x1080 FHD IPS", 1.77, 50, "Windows 11", 83.5),
+    (66, "Acer", "Swift Go 14 SFG14-71 (i5-13500H OLED)", 62990, "Intel", "Core i5-13500H", 12, 16, "LPDDR5", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 14.0, 90, "2880x1800 2.8K OLED", 1.25, 65, "Windows 11", 91.5),
+    (67, "Acer", "Swift Go 14 SFG14-72 (Core Ultra 5 125H OLED)", 74990, "Intel", "Core Ultra 5 125H", 14, 16, "LPDDR5X", 512, "NVMe SSD", "Intel", "Arc Graphics", "Integrated", 14.0, 90, "2880x1800 2.8K OLED", 1.32, 65, "Windows 11", 93.0),
+    (68, "Acer", "Nitro V 15 ANV15-51 (i5-13420H / RTX 2050)", 54990, "Intel", "Core i5-13420H", 8, 16, "DDR5", 512, "NVMe SSD", "NVIDIA", "RTX 2050 (4GB)", "Dedicated", 15.6, 144, "1920x1080 FHD IPS", 2.10, 57, "Windows 11", 81.5),
+    (69, "Acer", "Nitro V 15 ANV15-51 (i5-13420H / RTX 3050)", 65990, "Intel", "Core i5-13420H", 8, 16, "DDR5", 512, "NVMe SSD", "NVIDIA", "RTX 3050 (6GB)", "Dedicated", 15.6, 144, "1920x1080 FHD IPS", 2.10, 57, "Windows 11", 85.5),
+    (70, "Acer", "Nitro V 15 ANV15-51 (i5-13420H / RTX 4050)", 73990, "Intel", "Core i5-13420H", 8, 16, "DDR5", 512, "NVMe SSD", "NVIDIA", "RTX 4050 (6GB)", "Dedicated", 15.6, 144, "1920x1080 FHD IPS", 2.10, 57, "Windows 11", 89.0),
+    (71, "Acer", "Predator Helios Neo 16 PHN16-71 (i7-13700HX / RTX 4050)", 99990, "Intel", "Core i7-13700HX", 16, 16, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4050 (6GB)", "Dedicated", 16.0, 165, "1920x1200 WUXGA IPS 100% sRGB", 2.60, 90, "Windows 11", 92.5),
+    (72, "Acer", "Predator Helios Neo 16 PHN16-72 (i7-14700HX / RTX 4060)", 124990, "Intel", "Core i7-14700HX", 20, 16, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4060 (8GB)", "Dedicated", 16.0, 165, "2560x1600 WQXGA IPS 100% sRGB", 2.60, 90, "Windows 11", 95.0),
+
+    # --- MSI PERFORMANCE & GAMING ---
+    (73, "MSI", "Modern 14 C12M (i3-1215U / 8GB)", 32990, "Intel", "Core i3-1215U", 6, 8, "DDR4", 512, "NVMe SSD", "Intel", "UHD Graphics", "Integrated", 14.0, 60, "1920x1080 FHD IPS", 1.40, 39, "Windows 11", 75.0),
+    (74, "MSI", "Modern 15 B12M (i5-1235U / 16GB)", 44990, "Intel", "Core i5-1235U", 10, 16, "DDR4", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 15.6, 60, "1920x1080 FHD IPS", 1.70, 39, "Windows 11", 81.5),
+    (75, "MSI", "GF63 Thin 11UC (i5-11260H / RTX 3050)", 51990, "Intel", "Core i5-11260H", 6, 16, "DDR4", 512, "NVMe SSD", "NVIDIA", "RTX 3050 (4GB)", "Dedicated", 15.6, 144, "1920x1080 FHD IPS", 1.86, 52, "Windows 11", 80.0),
+    (76, "MSI", "Cyborg 15 A12VE (i5-12450H / RTX 4050)", 67990, "Intel", "Core i5-12450H", 8, 16, "DDR5", 512, "NVMe SSD", "NVIDIA", "RTX 4050 (6GB)", "Dedicated", 15.6, 144, "1920x1080 FHD IPS", 1.98, 53, "Windows 11", 86.0),
+    (77, "MSI", "Katana 15 B13VFK (i7-13620H / RTX 4060)", 96990, "Intel", "Core i7-13620H", 10, 16, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4060 (8GB)", "Dedicated", 15.6, 144, "1920x1080 FHD IPS", 2.25, 53, "Windows 11", 90.0),
+    (78, "MSI", "Vector 16 HX A13VHG (i9-13980HX / RTX 4080)", 219990, "Intel", "Core i9-13980HX", 24, 32, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4080 (12GB)", "Dedicated", 16.0, 240, "2560x1600 QHD+ 240Hz", 2.70, 90, "Windows 11", 97.0),
+
+    # --- SAMSUNG GALAXY BOOK (ULTRAPORTABLE / DEVELOPER) ---
+    (79, "Samsung", "Galaxy Book2 (i5-1235U / 16GB)", 54990, "Intel", "Core i5-1235U", 10, 16, "LPDDR4x", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 15.6, 60, "1920x1080 FHD", 1.55, 54, "Windows 11", 84.0),
+    (80, "Samsung", "Galaxy Book4 (Core 5 120U / 16GB)", 67990, "Intel", "Core 5 120U", 10, 16, "LPDDR5", 512, "NVMe SSD", "Intel", "Graphics", "Integrated", 15.6, 60, "1920x1080 FHD", 1.55, 54, "Windows 11", 87.0),
+    (81, "Samsung", "Galaxy Book4 Pro 360 (Ultra 7 155H)", 164990, "Intel", "Core Ultra 7 155H", 16, 16, "LPDDR5X", 1024, "NVMe SSD", "Intel", "Arc Graphics", "Integrated", 16.0, 120, "2880x1800 Dynamic AMOLED 2X Touch", 1.66, 76, "Windows 11", 96.0),
+
+    # --- ADDITIONAL BUDGET & MIDRANGE COHORT ---
+    (82, "Lenovo", "V15 G4 AMN (Ryzen 3 7320U)", 29990, "AMD", "Ryzen 3 7320U", 4, 8, "LPDDR5", 512, "NVMe SSD", "AMD", "Radeon 610M", "Integrated", 15.6, 60, "1920x1080 FHD", 1.65, 38, "Windows 11", 72.0),
+    (83, "Lenovo", "V15 G4 IRU (i3-1315U)", 35990, "Intel", "Core i3-1315U", 6, 8, "DDR4", 512, "NVMe SSD", "Intel", "UHD Graphics", "Integrated", 15.6, 60, "1920x1080 FHD", 1.65, 38, "Windows 11", 75.5),
+    (84, "HP", "250 G9 (i3-1215U / 8GB)", 33990, "Intel", "Core i3-1215U", 6, 8, "DDR4", 512, "NVMe SSD", "Intel", "UHD Graphics", "Integrated", 15.6, 60, "1920x1080 FHD", 1.74, 41, "DOS", 71.0),
+    (85, "HP", "255 G9 (Ryzen 5 5625U / 16GB)", 41990, "AMD", "Ryzen 5 5625U", 6, 16, "DDR4", 512, "NVMe SSD", "AMD", "Radeon RX Vega 7", "Integrated", 15.6, 60, "1920x1080 FHD", 1.47, 41, "Windows 11", 81.0),
+    (86, "Dell", "Vostro 3520 (i5-1235U / 16GB)", 47990, "Intel", "Core i5-1235U", 10, 16, "DDR4", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 15.6, 120, "1920x1080 FHD 120Hz", 1.66, 41, "Windows 11", 82.5),
+    (87, "Dell", "Vostro 14 3430 (i5-1335U / 16GB)", 54990, "Intel", "Core i5-1335U", 10, 16, "DDR4", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 14.0, 60, "1920x1080 FHD IPS", 1.44, 54, "Windows 11", 84.0),
+    (88, "ASUS", "ExpertBook B1 B1502CBA (i5-1235U)", 48990, "Intel", "Core i5-1235U", 10, 16, "DDR4", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 15.6, 60, "1920x1080 FHD", 1.69, 42, "Windows 11 Pro", 83.0),
+    (89, "ASUS", "Vivobook 14 X1404ZA (i3-1215U / 16GB)", 39990, "Intel", "Core i3-1215U", 6, 16, "DDR4", 512, "NVMe SSD", "Intel", "UHD Graphics", "Integrated", 14.0, 60, "1920x1080 FHD", 1.40, 42, "Windows 11", 79.5),
+    (90, "Acer", "One 14 Z2-493 (Ryzen 5 3500U)", 28990, "AMD", "Ryzen 5 3500U", 4, 16, "DDR4", 512, "NVMe SSD", "AMD", "Radeon RX Vega 8", "Integrated", 14.0, 60, "1920x1080 FHD", 1.49, 36, "Windows 11", 73.0),
+    (91, "Acer", "Extensa 15 EX215-54 (i5-1135G7)", 38990, "Intel", "Core i5-1135G7", 4, 8, "DDR4", 512, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 15.6, 60, "1920x1080 FHD", 1.70, 36, "Windows 11", 76.0),
+
+    # --- ADVANCED WORKSTATIONS & CREATIVE BEASTS ---
+    (92, "Lenovo", "ThinkPad T14 Gen 4 (i7-1355U / 32GB)", 129990, "Intel", "Core i7-1355U", 10, 32, "DDR5", 1024, "NVMe SSD", "Intel", "Iris Xe", "Integrated", 14.0, 60, "1920x1200 WUXGA Low Power", 1.36, 52.5, "Windows 11 Pro", 94.5),
+    (93, "Lenovo", "ThinkPad P16s Gen 2 (Ryzen 7 Pro 7840U)", 142990, "AMD", "Ryzen 7 Pro 7840U", 8, 32, "LPDDR5X", 1024, "NVMe SSD", "AMD", "Radeon 780M", "Integrated", 16.0, 60, "1920x1200 WUXGA IPS", 1.70, 86, "Windows 11 Pro", 95.0),
+    (94, "Dell", "Precision 3581 Workstation (i7-13800H / RTX A1000)", 179990, "Intel", "Core i7-13800H", 14, 32, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX A1000 (6GB)", "Dedicated", 15.6, 60, "1920x1080 FHD 100% sRGB", 1.79, 64, "Windows 11 Pro", 96.0),
+    (95, "ASUS", "ProArt Studiobook 16 OLED (i9-13980HX / RTX 4070)", 229990, "Intel", "Core i9-13980HX", 24, 32, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4070 (8GB)", "Dedicated", 16.0, 120, "3200x2000 3.2K OLED Touch", 2.40, 90, "Windows 11 Pro", 97.5),
+    (96, "Apple", "MacBook Pro 16 M3 Pro (18GB/512GB)", 249900, "Apple", "M3 Pro", 12, 18, "Unified", 512, "NVMe SSD", "Apple", "18-core GPU", "Integrated", 16.2, 120, "3456x2234 Liquid Retina XDR", 2.14, 100, "macOS", 98.0),
+    (97, "Lenovo", "Legion 7i 16IRX9 (i9-14900HX / RTX 4070)", 189990, "Intel", "Core i9-14900HX", 24, 32, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4070 (8GB)", "Dedicated", 16.0, 240, "3200x2000 3.2K IPS", 2.24, 99.9, "Windows 11", 98.0),
+    (98, "HP", "Omen Transcend 14 (Core Ultra 7 155H / RTX 4060)", 154990, "Intel", "Core Ultra 7 155H", 16, 16, "LPDDR5X", 1024, "NVMe SSD", "NVIDIA", "RTX 4060 (8GB)", "Dedicated", 14.0, 120, "2880x1800 2.8K OLED", 1.63, 71, "Windows 11", 95.0),
+    (99, "Acer", "Predator Helios 16 PH16-72 (i9-14900HX / RTX 4080)", 239990, "Intel", "Core i9-14900HX", 24, 32, "DDR5", 2048, "NVMe SSD", "NVIDIA", "RTX 4080 (12GB)", "Dedicated", 16.0, 240, "2560x1600 WQXGA Mini LED", 2.70, 90, "Windows 11", 98.5),
+    (100, "ASUS", "ROG Flow X13 GV302XA (Ryzen 9 7940HS)", 124990, "AMD", "Ryzen 9 7940HS", 8, 16, "LPDDR5", 512, "NVMe SSD", "AMD", "Radeon 780M", "Integrated", 13.4, 120, "1920x1200 FHD+ Touch 120Hz", 1.30, 75, "Windows 11", 94.0),
+    (101, "MSI", "Stealth 16 AI Studio (Core Ultra 7 155H / RTX 4070)", 199990, "Intel", "Core Ultra 7 155H", 16, 32, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4070 (8GB)", "Dedicated", 16.0, 240, "2560x1600 QHD+ OLED", 1.99, 99.9, "Windows 11", 97.0),
+    (102, "HP", "Victus 15-fa1145TX (i5-13420H / RTX 3050 6GB)", 68990, "Intel", "Core i5-13420H", 8, 16, "DDR4", 512, "NVMe SSD", "NVIDIA", "RTX 3050 (6GB)", "Dedicated", 15.6, 144, "1920x1080 FHD IPS", 2.29, 52, "Windows 11", 85.5),
+    (103, "Lenovo", "IdeaPad Flex 5 14ABR8 2-in-1", 59990, "AMD", "Ryzen 5 7530U", 6, 16, "LPDDR4x", 512, "NVMe SSD", "AMD", "Radeon RX Vega 7", "Integrated", 14.0, 60, "1920x1200 WUXGA IPS Touch", 1.55, 52.5, "Windows 11", 85.0),
+    (104, "Dell", "G16 7630 (i9-13900HX / RTX 4070)", 164990, "Intel", "Core i9-13900HX", 24, 16, "DDR5", 1024, "NVMe SSD", "NVIDIA", "RTX 4070 (8GB)", "Dedicated", 16.0, 240, "2560x1600 QHD+ 240Hz", 2.87, 86, "Windows 11", 96.0),
+    (105, "ASUS", "Vivobook 16 M1605YA (Ryzen 7 7730U / 16GB)", 56990, "AMD", "Ryzen 7 7730U", 8, 16, "DDR4", 512, "NVMe SSD", "AMD", "Radeon RX Vega 8", "Integrated", 16.0, 60, "1920x1200 WUXGA IPS", 1.88, 42, "Windows 11", 84.5),
+]
+
+HEADERS = [
+    "laptop_id",
+    "brand",
+    "model",
+    "price_inr",
+    "processor_brand",
+    "processor_model",
+    "cpu_cores",
+    "ram_gb",
+    "ram_type",
+    "storage_gb",
+    "storage_type",
+    "gpu_brand",
+    "gpu_model",
+    "gpu_type",
+    "display_size_inch",
+    "refresh_rate_hz",
+    "resolution",
+    "weight_kg",
+    "battery_whr",
+    "operating_system",
+    "rating"
+]
+
+def generate():
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(OUTPUT_CSV, mode="w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(HEADERS)
+        for row in LAPTOPS_DATA:
+            writer.writerow(row)
+    
+    print(f"Successfully generated {len(LAPTOPS_DATA)} laptops in {os.path.abspath(OUTPUT_CSV)}")
+
+if __name__ == "__main__":
+    generate()
