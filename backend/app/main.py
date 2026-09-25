@@ -95,11 +95,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Next.js (later) runs on port 3000. The browser blocks cross-origin calls
-# unless the API explicitly allows that origin.
+# ---------------------------------------------------------------------------
+# CORS Configuration: Whitelist localhost, Vercel frontend, and mobile apps
+# ---------------------------------------------------------------------------
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://smartchoice-two.vercel.app",
+    "https://smartchoice-a289fug1r-alone-e892.vercel.app",
+    "*",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -892,8 +901,9 @@ def get_movie(movie_id: int):
         raise HTTPException(status_code=404, detail=f"Movie not found: {movie_id}")
     return movie_detail(matches.iloc[0])
 
+
 # ---------------------------------------------------------------------------
-# Laptop catalog and recommendation endpoints (Steps 1 & 2)
+# Laptop catalog and recommendation endpoints
 # ---------------------------------------------------------------------------
 from app.ml.laptop_recommender import recommender as laptop_recommender
 
